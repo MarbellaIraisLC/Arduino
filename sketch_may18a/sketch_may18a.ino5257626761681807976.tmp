@@ -1,0 +1,261 @@
+
+
+#include <ESP8266WiFi.h>
+#include <WiFi.h>
+#include <WiFiClient.h>
+#include <WiFiServer.h>
+#include <WiFiUdp.h>
+
+const char* ssid = "Mistorn309.8";
+const char* password = "Mardolfo79";
+
+const int IN1 = 11;
+const int IN2 = 12;
+const int IN3 = 13;
+const int IN4 = 14;
+
+const int triggerEmisor = 1;
+const int echoReceptor = 0;
+const int triggerEmisor1= 3;
+const int echoReceptor1 = 2;
+const int valorUmbral = 20; //valor de la distancia en cm para detenerse
+long tiempoEntrada;
+float distanciaEntrada;
+long tiempoEntrada1;
+float distanciaEntrada1;
+
+int pinR = 4, pinL = 5, followerR, followerL; // PINS DE LOS SENSORES SEGUIDORES DE LÍNEA
+
+
+
+const int s0 = 6;  
+const int s1 = 7;  
+const int s2 = 8;  
+const int s3 = 9;  
+const int out = 10;    
+int rojo = 0;  
+int verde = 0;  
+int azul = 0;  
+
+
+
+
+
+
+
+
+
+
+WiFiServer server(80);
+
+void setup() {
+  
+pinMode (IN1, OUTPUT);
+pinMode (IN2, OUTPUT);
+pinMode (IN3, OUTPUT);
+pinMode (IN4, OUTPUT);
+pinMode(triggerEmisor,OUTPUT);
+pinMode(echoReceptor,INPUT);
+pinMode(triggerEmisor1,OUTPUT);
+pinMode(echoReceptor1,INPUT);
+
+  pinMode (pinR, INPUT);
+  pinMode (pinL, INPUT);
+
+  pinMode(s0,OUTPUT);  
+  pinMode(s1,OUTPUT);  
+  pinMode(s2,OUTPUT);  
+  pinMode(s3,OUTPUT);  
+  pinMode(out,INPUT);   
+  digitalWrite(s0,HIGH);  
+  digitalWrite(s1,HIGH);  
+
+  Serial.begin(9600);
+  delay(10);
+
+  //Configuración  del GPIO2
+  pinMode(2, OUTPUT);
+  digitalWrite(2,LOW);
+  
+  
+  Serial.println();
+  Serial.println();
+  Serial.print("Conectandose a red : ");
+  Serial.println(ssid);
+  
+  WiFi.begin(ssid, password); //Conexión a la red
+  
+  while (WiFi.status() != WL_CONNECTED)
+  {
+    delay(500);
+    Serial.print(".");
+  }
+  Serial.println("");
+  Serial.println("WiFi conectado");
+  
+  
+  server.begin(); //Iniciamos el servidor
+  Serial.println("Servidor Iniciado");
+
+
+  Serial.println("Ingrese desde un navegador web usando la siguiente IP:");
+  Serial.println(WiFi.localIP()); //Obtenemos la IP
+}
+
+void loop() {
+
+  color(); 
+  Serial.print("   ");  
+  Serial.print(rojo, DEC);  
+  Serial.print("   ");  
+  Serial.print(verde, DEC);  
+  Serial.print("   ");  
+  Serial.print(azul, DEC);  
+
+
+  
+followerR = digitalRead (pinR);
+
+followerL = digitalRead (pinL);
+
+
+sensorUltrasonidos();
+
+// Si el valor de la distancia es menor que 5 cm se para y sigue recto en caso contrario
+if(distanciaEntrada>valorUmbral&&distanciaEntrada1<valorUmbral&&(followerR == 0)&(followerL == 0))
+{
+robotAvance();
+}
+if ((followerR == 0)& (followerL == 1)) //RIGHT - DERECHA
+{
+
+}
+
+if ((followerR == 1)& (followerL == 0)) //LEFT - IZQUIERDA
+{
+    
+}
+if(distanciaEntrada>valorUmbral&&distanciaEntrada1<valorUmbral&&(followerR == 1)& (followerL == 1))
+{
+robotParar ();
+}
+
+
+  
+  WiFiClient client = server.available();
+  if (client) //Si hay un cliente presente
+  { 
+    Serial.println("Nuevo Cliente");
+    
+    //esperamos hasta que hayan datos disponibles
+    while(!client.available()&&client.connected())
+    {
+    delay(1);
+    }
+    
+    // Leemos la primera línea de la petición del cliente.
+    String linea1 = client.readStringUntil('r');
+    Serial.println(linea1);
+
+    if (linea1.indexOf("LED=ON")>0) //Buscamos un LED=ON en la 1°Linea
+    {
+      digitalWrite(2,HIGH);
+    }
+    if (linea1.indexOf("LED=OFF")>0)//Buscamos un LED=OFF en la 1°Linea
+    {
+      digitalWrite(2,LOW);
+    }
+    
+    client.flush(); 
+                
+    Serial.println("Enviando respuesta...");   
+    //Encabesado http    
+    client.println("HTTP/1.1 200 OK");
+    client.println("Content-Type: text/html");
+    client.println("Connection: close");// La conexión se cierra después de finalizar de la respuesta
+    client.println();
+    //Pagina html  para en el navegador
+    client.println("<!DOCTYPE HTML>");
+    client.println("<html>");
+    client.println("<head><title>Naylam Mechatronics</title>");
+    client.println("<body>");
+    client.println("<h1 align='center'>Test ESP8266</h1>");
+    client.println("<div style='text-align:center;'>");
+    client.println("<br />");            
+    client.println("<button onClick=location.href='./?LED=ON'>LED ON</button>");           
+    client.println("<button onClick=location.href='./?LED=OFF'>LED OFF</button>");
+    client.println("<br />");
+    client.println("</div>");
+    client.println("</body>");
+    client.println("</html>");
+    
+    delay(1);
+    Serial.println("respuesta enviada");
+    Serial.println();
+
+  }
+}
+
+
+
+
+
+
+ 
+void color()  
+{    
+  digitalWrite(s2, LOW);  
+  digitalWrite(s3, LOW);   
+  rojo = pulseIn(out, digitalRead(out) == HIGH ? LOW : HIGH);  
+  digitalWrite(s3, HIGH);   
+  azul = pulseIn(out, digitalRead(out) == HIGH ? LOW : HIGH);  
+  digitalWrite(s2, HIGH);    
+  verde = pulseIn(out, digitalRead(out) == HIGH ? LOW : HIGH);  
+}
+
+
+
+
+void sensorUltrasonidos()
+{
+digitalWrite(triggerEmisor,LOW); digitalWrite(triggerEmisor1,LOW);
+delayMicroseconds(10);
+digitalWrite(triggerEmisor, HIGH); digitalWrite(triggerEmisor1, HIGH);
+delayMicroseconds(10);
+tiempoEntrada=pulseIn(echoReceptor, HIGH); tiempoEntrada1=pulseIn(echoReceptor1, HIGH);
+distanciaEntrada= int(0.017*tiempoEntrada); distanciaEntrada1= int(0.017*tiempoEntrada1);// Fórmula para calcular la distancia en cm
+Serial.println("El valor de la distancia es ");
+Serial.println(distanciaEntrada);
+Serial.println("El valor de la distancia es ");
+Serial.println(distanciaEntrada1);
+delay(200);
+}
+
+void robotAvance()
+{
+digitalWrite (IN1, HIGH);
+digitalWrite (IN2, HIGH);
+digitalWrite (IN3, HIGH);
+digitalWrite (IN4, HIGH);
+}
+void robotParar()
+{
+digitalWrite (IN1, LOW);
+digitalWrite (IN2, LOW);
+digitalWrite (IN3, LOW);
+digitalWrite (IN4, LOW);
+}
+void robotIzquierda()
+{
+digitalWrite (IN1, LOW);
+digitalWrite (IN2, LOW);
+digitalWrite (IN3, LOW);
+digitalWrite (IN4, LOW);
+}
+void robotDerecha()
+{
+digitalWrite (IN1, LOW);
+digitalWrite (IN2, LOW);
+digitalWrite (IN3, LOW);
+digitalWrite (IN4, LOW);
+}

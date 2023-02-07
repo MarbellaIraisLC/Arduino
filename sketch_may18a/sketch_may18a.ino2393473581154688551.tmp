@@ -1,0 +1,201 @@
+int boton =  31;
+int boton1 = 33;
+int boton2 = 35;
+const int LED=45;
+const int LED1=47;
+const int LED2=49;
+
+int ENA = 8;
+int ENB = 9;
+const int IN1 = 10;
+const int IN2 = 11;
+const int IN3 = 12;
+const int IN4 = 13;
+
+const int triggerEmisor = 1;
+const int echoReceptor = 0;
+const int triggerEmisor1= 3;
+const int echoReceptor1 = 2;
+const int valorUmbral = 20; //valor de la distancia en cm para detenerse
+long tiempoEntrada;
+float distanciaEntrada;
+long tiempoEntrada1;
+float distanciaEntrada1;
+
+int pinR = 4, pinL = 5, followerR, followerL; // PINS DE LOS SENSORES SEGUIDORES DE LÍNEA
+int val;
+int val1;
+int val2;
+
+
+const int s0 = 14;  
+const int s1 = 15;  
+const int s2 = 16;  
+const int s3 = 17;  
+const int out = 18;    
+int rojo = 31;  
+int verde = 33;  
+int azul = 35;  
+
+
+void setup() {
+   pinMode (ENA, OUTPUT);
+ pinMode (ENB, OUTPUT);
+             pinMode( boton , INPUT_PULLUP) ;
+              pinMode( boton1 , INPUT_PULLUP) ;
+              pinMode( boton2 , INPUT_PULLUP) ;
+ 
+pinMode (IN1, OUTPUT);
+pinMode (IN2, OUTPUT);
+pinMode (IN3, OUTPUT);
+pinMode (IN4, OUTPUT);
+pinMode(triggerEmisor,OUTPUT);
+pinMode(echoReceptor,INPUT);
+pinMode(triggerEmisor1,OUTPUT);
+pinMode(echoReceptor1,INPUT);
+
+  pinMode (pinR, INPUT);
+  pinMode (pinL, INPUT);
+
+  pinMode(s0,OUTPUT);  
+  pinMode(s1,OUTPUT);  
+  pinMode(s2,OUTPUT);  
+  pinMode(s3,OUTPUT);  
+  pinMode(out,INPUT);   
+  digitalWrite(s0,HIGH);  
+  digitalWrite(s1,HIGH);  
+
+  Serial.begin(9600);
+  delay(10);
+
+  //Configuración  del GPIO2
+  pinMode(2, OUTPUT);
+  digitalWrite(2,LOW);
+ 
+}
+
+void loop() {
+ val=digitalRead(boton);
+val1=digitalRead(boton1);
+val2=digitalRead(boton2);
+  color(); 
+  Serial.print("   ");  
+  Serial.print(rojo, DEC);  
+  Serial.print("   ");  
+  Serial.print(verde, DEC);  
+  Serial.print("   ");  
+  Serial.print(azul, DEC);  
+
+
+  
+followerR = digitalRead (pinR);
+
+followerL = digitalRead (pinL);
+
+
+sensorUltrasonidos();
+
+if  (val==HIGH){
+digitalWrite(LED,HIGH);
+val1=LOW;
+val2=LOW;
+robotAvance();
+  if (rojo < azul && verde > azul && rojo < 35) 
+  {  
+   Serial.println("   Rojo");    
+    robotParar();
+ delay (1000);
+  }   
+}
+
+if  (val1==HIGH){
+digitalWrite(LED1,HIGH);
+val=LOW;
+val2=LOW;
+robotAvance();
+if (azul < rojo && azul < verde && verde < rojo)  
+  {  
+   Serial.println("   Azul");        
+   robotParar();
+  }  
+}
+
+if  (val1==HIGH){
+digitalWrite(LED2,HIGH);
+val1=LOW;
+val=LOW;
+robotAvance();
+if (rojo > verde && azul > verde )    {  
+   Serial.println("   Verde");       
+   robotParar();
+  }  
+}
+
+
+}
+
+
+
+
+
+
+ 
+void color()  
+{    
+  digitalWrite(s2, LOW);  
+  digitalWrite(s3, LOW);   
+  rojo = pulseIn(out, digitalRead(out) == HIGH ? LOW : HIGH);  
+  digitalWrite(s3, HIGH);   
+  azul = pulseIn(out, digitalRead(out) == HIGH ? LOW : HIGH);  
+  digitalWrite(s2, HIGH);    
+  verde = pulseIn(out, digitalRead(out) == HIGH ? LOW : HIGH);  
+}
+
+
+
+
+void sensorUltrasonidos()
+{
+digitalWrite(triggerEmisor,LOW); digitalWrite(triggerEmisor1,LOW);
+delayMicroseconds(10);
+digitalWrite(triggerEmisor, HIGH); digitalWrite(triggerEmisor1, HIGH);
+delayMicroseconds(10);
+tiempoEntrada=pulseIn(echoReceptor, HIGH); tiempoEntrada1=pulseIn(echoReceptor1, HIGH);
+distanciaEntrada= int(0.017*tiempoEntrada); distanciaEntrada1= int(0.017*tiempoEntrada1);// Fórmula para calcular la distancia en cm
+Serial.println("El valor de la distancia es ");
+Serial.println(distanciaEntrada);
+Serial.println("El valor de la distancia es ");
+Serial.println(distanciaEntrada1);
+delay(200);
+}
+
+void robotAvance()
+{
+digitalWrite (IN1, HIGH);
+digitalWrite (IN2, HIGH);
+digitalWrite (IN3, HIGH);
+digitalWrite (IN4, HIGH);
+ analogWrite (ENA, 255); //Velocidad motor A
+  analogWrite (ENB, 255); //Velocidad motor A
+}
+void robotParar()
+{
+digitalWrite (IN1, LOW);
+digitalWrite (IN2, LOW);
+digitalWrite (IN3, LOW);
+digitalWrite (IN4, LOW);
+}
+void robotIzquierda()
+{
+digitalWrite (IN1, LOW);
+digitalWrite (IN2, LOW);
+digitalWrite (IN3, LOW);
+digitalWrite (IN4, LOW);
+}
+void robotDerecha()
+{
+digitalWrite (IN1, LOW);
+digitalWrite (IN2, LOW);
+digitalWrite (IN3, LOW);
+digitalWrite (IN4, LOW);
+}

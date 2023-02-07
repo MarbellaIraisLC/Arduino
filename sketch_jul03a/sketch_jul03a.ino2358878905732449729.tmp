@@ -1,0 +1,192 @@
+#include <SoftwareSerial.h>
+//  ULTRASONICOS
+#define trigPin1 52
+#define echoPin1 53
+#define trigPin2 50
+#define echoPin2 51
+//  INFRARROJO
+#define lights 4
+long duration, distance, FSensor,BSensor;
+int LDR1, LDR2; // sensor values
+const int valorUmbral = 20; //valor de la distancia en cm para detenerse
+//  MOTORES
+// Motor A
+int ENA = 19;
+int IN1 = 18;
+int IN2 = 17;
+// Motor B
+int ENB = 16;
+int IN3 = 15;
+int IN4 = 14;
+//  COLOR
+const int s0 = 5;  
+const int s1 = 6;  
+const int s2 = 7;  
+const int s3 = 8;  
+const int out = 9;    
+int rojo = 0; 
+int verde = 0;  
+int azul = 0;  
+
+void setup() {
+Serial.begin(9600);     // Velocidad de comunicacion con la PC
+// INFRA
+pinMode(lights, OUTPUT); // lights
+digitalWrite(lights, HIGH); // lights on
+//  ULTRA
+pinMode(trigPin1, OUTPUT);
+pinMode(echoPin1, INPUT);
+pinMode(trigPin2, OUTPUT);
+pinMode(echoPin2, INPUT);
+// MOTORES
+ pinMode (ENA, OUTPUT);
+ pinMode (ENB, OUTPUT);
+ pinMode (IN1, OUTPUT);
+ pinMode (IN2, OUTPUT);
+ pinMode (IN3, OUTPUT);
+ pinMode (IN4, OUTPUT); 
+ // COLOR
+   pinMode(s0,OUTPUT);  
+  pinMode(s1,OUTPUT);  
+  pinMode(s2,OUTPUT);  
+  pinMode(s3,OUTPUT);  
+  pinMode(out,INPUT);   
+  digitalWrite(s0,HIGH);  
+  digitalWrite(s1,HIGH);  
+}
+
+void color()  
+{    
+  digitalWrite(s2, LOW);  
+  digitalWrite(s3, LOW);   
+  rojo = pulseIn(out, digitalRead(out) == HIGH ? LOW : HIGH);  
+  digitalWrite(s3, HIGH);   
+  azul = pulseIn(out, digitalRead(out) == HIGH ? LOW : HIGH);  
+  digitalWrite(s2, HIGH);    
+  verde = pulseIn(out, digitalRead(out) == HIGH ? LOW : HIGH);  
+}
+
+void SonarSensor(int trigPin,int echoPin)
+{
+digitalWrite(trigPin, LOW);
+delayMicroseconds(2);
+digitalWrite(trigPin, HIGH);
+delayMicroseconds(10);
+digitalWrite(trigPin, LOW);
+duration = pulseIn(echoPin, HIGH);
+distance = (duration/2) / 29.1;
+}
+
+void Adelante ()
+{
+ //Direccion motor A
+ digitalWrite (IN1, HIGH);
+ digitalWrite (IN2, LOW);
+ analogWrite (ENA, 255); //Velocidad motor A
+ //Direccion motor B
+ digitalWrite (IN3, HIGH);
+ digitalWrite (IN4, LOW);
+ analogWrite (ENB, 255); //Velocidad motor B
+}
+
+void Derecha ()
+{
+ //Direccion motor A
+ digitalWrite (IN1, HIGH);
+ digitalWrite (IN2, LOW);
+ analogWrite (ENA, 255); //Velocidad motor A
+ //Direccion motor B
+ digitalWrite (IN3, LOW);
+ digitalWrite (IN4, HIGH);
+ analogWrite (ENB, 255); //Velocidad motor A
+}
+
+void Izquierda ()
+{
+ //Direccion motor A
+ digitalWrite (IN1, LOW);
+ digitalWrite (IN2, HIGH);
+ analogWrite (ENA, 255); //Velocidad motor A
+ //Direccion motor B
+ digitalWrite (IN3, HIGH);
+ digitalWrite (IN4, LOW);
+ analogWrite (ENB, 255); //Velocidad motor A
+}
+void Parar ()
+{
+ //Direccion motor A
+ digitalWrite (IN1, LOW);
+ digitalWrite (IN2, LOW);
+ analogWrite (ENA, 0); //Velocidad motor A
+ //Direccion motor B
+ digitalWrite (IN3, LOW);
+ digitalWrite (IN4, LOW);
+ analogWrite (ENB, 0); //Velocidad motor A
+}
+void ulin(){
+SonarSensor(trigPin1, echoPin1);
+FSensor = distance;
+SonarSensor(trigPin2, echoPin2);
+BSensor = distance;
+if(FSensor>valorUmbral&&BSensor<valorUmbral)//&&(followerR == 0)&(followerL == 0)
+{
+  Serial.println("Avanzar");
+Adelante();
+ delay (1000);
+}
+if(BSensor>valorUmbral)
+{
+ Serial.println("Parar u");
+Parar();
+ delay (1000);
+}
+if(FSensor<valorUmbral&&BSensor<valorUmbral)//&&(followerR == 0)&(followerL == 0)
+{
+  Serial.println("Parar");
+ Parar();
+ delay (1000);
+}
+LDR1 = analogRead(0);
+LDR2 = analogRead(1);
+if  (LDR1==1023){
+  Serial.println("Izq");
+ Izquierda();
+ delay (1000);
+}
+if  (LDR2==1023){
+  Serial.println("Der");
+ Derecha();
+ delay (1000);
+}
+}
+
+void loop() {
+Serial.flush();
+//desde aqui empieza a recibir el string:
+String S = "" ;
+if (Serial.available() )
+{char c = Serial.read();
+while ( c != '\n' ) //Hasta que el caracter sea intro != significa diferente a...
+{ S = S + c ;
+//delay(25) ;
+c = Serial.read();
+}
+}else {return;}
+delay(500);
+Serial.println(String (S));
+Serial.flush();
+delay(5000);
+
+
+ color(); 
+   
+if (rojo < azul && verde > azul && rojo < 35) 
+  {  
+   Serial.println("Alto   Rojo");  
+    Parar ();
+ delay (1000);
+  }   
+    ulin(); 
+ 
+  delay(1000);
+}
